@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
-import { getProducts, saveQuotation, getNextQuotationNumber } from '@/lib/storage'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { getProducts, saveQuotation, getNextQuotationNumber, getShops } from '@/lib/storage'
 import { generatePDF } from '@/utils/generatePDF'
-import { QuotationItem, CustomerDetails, Quotation } from '@/types'
+import { QuotationItem, CustomerDetails, Quotation, Shop } from '@/types'
 
 export default function QuotationPage() {
+  const [shops, setShops] = useState<Shop[]>([])
+  const [mounted, setMounted] = useState(false)
+  const [selectedShopId, setSelectedShopId] = useState<string>('')
   const [customer, setCustomer] = useState<CustomerDetails>({
     customerName: '',
     customerPhone: '',
@@ -21,6 +24,20 @@ export default function QuotationPage() {
   const [gstPercent, setGstPercent] = useState(0)
   const [deliveryCharges, setDeliveryCharges] = useState(0)
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    const availableShops = getShops()
+    setShops(availableShops)
+    if (availableShops.length > 0 && !selectedShopId) {
+      setSelectedShopId(availableShops[0].id || '')
+    }
+    setMounted(true)
+  }, [])
+
+  const selectedShop = useMemo(
+    () => shops.find(s => s.id === selectedShopId) || shops[0] || null,
+    [shops, selectedShopId]
+  )
 
   const subtotal = useMemo(
     () => items.reduce((sum, item) => {
@@ -71,6 +88,10 @@ export default function QuotationPage() {
   }, [items])
 
   const handleGeneratePDF = useCallback(async () => {
+    if (!selectedShop) {
+      alert('Please select a shop first.')
+      return
+    }
     if (!customer.customerName || !customer.customerPhone || items.length === 0) {
       alert('Please fill customer details and add at least one product.')
       return
@@ -80,7 +101,7 @@ export default function QuotationPage() {
       return
     }
     const quotationNumber = `Q${Date.now()}`
-    const displayNumber = `Q${getNextQuotationNumber().toString().padStart(4, '0')}`
+    const displayNumber = `Q${getNextQuotationNumber(selectedShop.id || 'default').toString().padStart(4, '0')}`
     await generatePDF({
       customer,
       items,
@@ -90,10 +111,11 @@ export default function QuotationPage() {
       deliveryCharges,
       total,
       notes,
-    }, displayNumber)
+    }, displayNumber, selectedShop)
 
     const quotation: Quotation = {
       id: quotationNumber,
+      shopId: selectedShop.id || '',
       date: new Date().toISOString(),
       customerName: customer.customerName,
       customerPhone: customer.customerPhone,
@@ -114,10 +136,67 @@ export default function QuotationPage() {
     setDeliveryCharges(0)
     setGstPercent(0)
     alert('Quotation saved and PDF downloaded!')
-  }, [customer, items, subtotal, gstPercent, gstAmount, deliveryCharges, total, notes])
+  }, [customer, items, subtotal, gstPercent, gstAmount, deliveryCharges, total, notes, selectedShop])
+
+  if (!mounted) {
+    return (
+      <div className="main-content" style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 16px' }}>
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-hero">
+            <div className="skeleton skeleton-hero-text">
+              <div className="skeleton skeleton-title" />
+              <div className="skeleton skeleton-text" />
+            </div>
+            <div className="skeleton skeleton-hero-circle" />
+          </div>
+        </div>
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-title" />
+          <div className="skeleton-form">
+            <div className="skeleton skeleton-block" />
+            <div className="skeleton skeleton-block" />
+            <div className="skeleton-form-full"><div className="skeleton skeleton-block" /></div>
+          </div>
+        </div>
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-title" />
+          <div className="skeleton-form">
+            <div className="skeleton-form-full"><div className="skeleton skeleton-block" /></div>
+            <div className="skeleton skeleton-block" />
+            <div className="skeleton skeleton-block" />
+            <div className="skeleton skeleton-block" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
+      {/* Shop Selector */}
+      <div className="card">
+        <h3>Select Shop</h3>
+        <select
+          className="form-input"
+          value={selectedShopId}
+          onChange={e => setSelectedShopId(e.target.value)}
+          style={{ maxWidth: '400px' }}
+        >
+          <option value="">Select a shop</option>
+          {shops.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        {selectedShop && (
+          <div className="shop-contact-preview">
+            {selectedShop.contactPerson && <span>{selectedShop.contactPerson}</span>}
+            {selectedShop.phone && <span>{selectedShop.phone}</span>}
+            {selectedShop.email && <span>{selectedShop.email}</span>}
+            {selectedShop.address && <span>{selectedShop.address}</span>}
+          </div>
+        )}
+      </div>
+
       {/* Customer Details */}
       <div className="card">
         <h3>Customer Details</h3>
@@ -223,7 +302,7 @@ export default function QuotationPage() {
               <tr>
                 <th>#</th>
                 <th>Product</th>
-                <th>Size (sqft)</th>
+                <th>Size</th>
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Unit Price</th>
@@ -240,7 +319,7 @@ export default function QuotationPage() {
                   <tr key={index}>
                     <td>{index + 1}</td>
                     <td>{item.productName}</td>
-                    <td>{item.size ? `${item.size} sqft` : '-'}</td>
+                    <td>{item.size || '-'}</td>
                     <td>{item.quantity}</td>
                     <td>{item.rate ? '₹' + item.rate.toLocaleString('en-IN') : '-'}</td>
                     <td>&#8377;{calcUnitPrice.toLocaleString('en-IN')}</td>
@@ -310,7 +389,7 @@ export default function QuotationPage() {
       </div>
 
       {/* Generate PDF */}
-      <button className="btn-generate-pdf" onClick={handleGeneratePDF}>
+      <button className="btn-generate-pdf" onClick={handleGeneratePDF} disabled={!selectedShop}>
         Download PDF Quotation
       </button>
     </>

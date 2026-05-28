@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { CustomerDetails, QuotationItem } from '@/types';
+import { CustomerDetails, QuotationItem, Shop } from '@/types';
 
 interface PDFData {
   customer: CustomerDetails;
@@ -33,7 +33,7 @@ async function loadImage(url: string): Promise<string> {
   }
 }
 
-export async function generatePDF(data: PDFData, quotationNumber: string): Promise<void> {
+export async function generatePDF(data: PDFData, quotationNumber: string, shop: Shop): Promise<void> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -41,8 +41,9 @@ export async function generatePDF(data: PDFData, quotationNumber: string): Promi
   const contentWidth = pageWidth - (margin * 2);
 
   // ============ BRAND LOGOS ============
-  const logoUrls = ['/brands/realplastlogo.png','/brands/kaka.png', '/brands/syntax.png'];
-  const logos = await Promise.all(logoUrls.map(url => loadImage(url)));
+  const logos = shop.showLogos && shop.logoUrls.length > 0
+    ? await Promise.all(shop.logoUrls.map(url => loadImage(url)))
+    : [];
 
   // ============ HEADER ============
   // Top accent bar
@@ -53,27 +54,45 @@ export async function generatePDF(data: PDFData, quotationNumber: string): Promi
   doc.setTextColor(26, 26, 46);
   doc.setFontSize(15);
   doc.setFont('helvetica', 'bold');
-  doc.text('Ananya House of Furniture Pvt Ltd.', margin, 18);
+  doc.text(shop.name, margin, 18);
 
   // Email and contact info
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text('ananyahouseoffurniture@gmail.com', margin, 24);
-  doc.text('www.ananyahouseoffurniture.in', margin, 27);
-  doc.text('Bharat Prajapati: +91 9099917211  |  Ramesh Prajapati: +91 9321812823  |  Dhruvil Patel: +91 9316992909', margin, 33);
+  let infoY = 24;
+  if (shop.email) {
+    doc.text(shop.email, margin, infoY);
+    infoY += 3;
+  }
+  if (shop.website) {
+    doc.text(shop.website, margin, infoY);
+    infoY += 3;
+  }
+  if (shop.address) {
+    const addrLines = doc.splitTextToSize(shop.address, contentWidth);
+    doc.text(addrLines, margin, infoY);
+    infoY += 3 * addrLines.length;
+  }
+  if (shop.contactPerson || shop.phone) {
+    const contact = [shop.contactPerson, shop.phone].filter(Boolean).join(': ');
+    doc.text(contact, margin, infoY);
+  }
 
   // Logos on the right side of header
-  const logoAreaX = pageWidth - margin - 78;
-  const logoW = 26;
-  const logoH = 18;
-  const logoGap = 2;
-  let lx = logoAreaX;
-  for (const logoData of logos) {
-    if (logoData) {
-      try { doc.addImage(logoData, 'PNG', lx, 6, logoW, logoH); } catch { /* skip */ }
+  if (logos.length > 0) {
+    const logoW = 26;
+    const logoH = 18;
+    const logoGap = 2;
+    const logoAreaWidth = (logoW * logos.length) + (logoGap * (logos.length - 1));
+    const logoAreaX = pageWidth - margin - logoAreaWidth;
+    let lx = logoAreaX;
+    for (const logoData of logos) {
+      if (logoData) {
+        try { doc.addImage(logoData, 'PNG', lx, 6, logoW, logoH); } catch { /* skip */ }
+      }
+      lx += logoW + logoGap;
     }
-    lx += logoW + logoGap;
   }
 
   doc.setTextColor(0, 0, 0);
@@ -146,7 +165,7 @@ export async function generatePDF(data: PDFData, quotationNumber: string): Promi
     return [
       index + 1,
       item.productName,
-      item.size ? `${item.size} sqft` : '-',
+      item.size ? item.size : '-',
       item.quantity,
       item.rate ? rs(item.rate) : '-',
       rs(unitPrice),
@@ -156,7 +175,7 @@ export async function generatePDF(data: PDFData, quotationNumber: string): Promi
 
   autoTable(doc, {
     startY: tableY,
-    head: [['#', 'Description', 'Size[sqft]', 'Qty', 'Rate', 'Unit Price', 'Amount']],
+    head: [['#', 'Description', 'Size', 'Qty', 'Rate', 'Unit Price', 'Amount']],
     body: tableData,
     headStyles: {
       fillColor: [26, 26, 46],
@@ -261,7 +280,8 @@ export async function generatePDF(data: PDFData, quotationNumber: string): Promi
 
   doc.setFontSize(7);
   doc.setTextColor(120, 120, 120);
-  doc.text('Ananya House of Furniture Pvt Ltd. | www.ananyahouseoffurniture.in', margin, footerY);
+  const footerLeft = [shop.name, shop.website].filter(Boolean).join(' | ');
+  doc.text(footerLeft, margin, footerY);
   doc.text(new Date().toLocaleDateString('en-IN'), pageWidth - margin, footerY, { align: 'right' });
   doc.setTextColor(0, 0, 0);
 

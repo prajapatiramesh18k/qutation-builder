@@ -23,8 +23,21 @@ export interface CustomerDetails {
   customerAddress: string;
 }
 
+export interface Shop {
+  id?: string;
+  name: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  website: string;
+  address: string;
+  showLogos: boolean;
+  logoUrls: string[];
+}
+
 export interface Quotation {
   id: string;
+  shopId: string;
   date: string;
   customerName: string;
   customerPhone: string;

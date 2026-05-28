@@ -1,8 +1,41 @@
-import { Product, Quotation } from '@/types';
+import { Product, Quotation, Shop } from '@/types';
 
 const PRODUCTS_KEY = 'ramehs_products';
 const QUOTATIONS_KEY = 'ramehs_quotations';
+const SHOPS_KEY = 'ramehs_shops';
 const QUOT_NUM_KEY = 'ramehs_quot_num';
+
+const SEED_SHOPS: Shop[] = [
+  {
+    id: 'shop-1',
+    name: 'Ananya House of Furniture Pvt Ltd.',
+    contactPerson: 'Bharat Prajapati',
+    phone: '+91 9099917211',
+    email: 'ananyahouseoffurniture@gmail.com',
+    website: 'www.ananyahouseoffurniture.in',
+    showLogos: true,
+     address: '123, Main Road, Rajkot, Gujarat, India',
+    logoUrls: ['/brands/realplastlogo.png', '/brands/kaka.png', '/brands/syntax.png'],
+  },
+  {
+    id: 'shop-2',
+    name: 'Ramehs Furniture',
+    contactPerson: 'MaheshPrajapati',
+    phone: '+91 8318727813',
+    email: 'ananyahouseoffurniture@gmail.com',
+    website: 'www.ananyahouseoffurniture.in',
+    showLogos: false,
+    address: '123, Main Road, Rajkot, Gujarat, India',
+    logoUrls: [],
+  },
+];
+
+function seedShops(): void {
+  const existing = localStorage.getItem(SHOPS_KEY);
+  if (!existing || JSON.parse(existing).length === 0) {
+    localStorage.setItem(SHOPS_KEY, JSON.stringify(SEED_SHOPS));
+  }
+}
 
 const SEED_PRODUCTS: Product[] = [
   { id: 'seed-1', name: 'Wooden Dining Table (6-seater)', category: 'Dining', price: 45000, brand: 'Ramehs Furniture' },
@@ -68,6 +101,42 @@ export function deleteProduct(id: string): Product[] {
   return products;
 }
 
+// Shops
+export function getShops(): Shop[] {
+  if (typeof window === 'undefined') return SEED_SHOPS;
+  seedShops();
+  const data = localStorage.getItem(SHOPS_KEY);
+  if (!data) return SEED_SHOPS;
+  const parsed = JSON.parse(data);
+  return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_SHOPS;
+}
+
+export function saveShops(shops: Shop[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SHOPS_KEY, JSON.stringify(shops));
+}
+
+export function addShop(shop: Shop): Shop[] {
+  const shops = getShops();
+  shops.push(shop);
+  saveShops(shops);
+  return shops;
+}
+
+export function updateShop(id: string, updates: Partial<Shop>): Shop[] {
+  const shops = getShops().map(s =>
+    s.id === id ? { ...s, ...updates } : s
+  );
+  saveShops(shops);
+  return shops;
+}
+
+export function deleteShop(id: string): Shop[] {
+  const shops = getShops().filter(s => s.id !== id);
+  saveShops(shops);
+  return shops;
+}
+
 // Quotations
 export function getQuotations(): Quotation[] {
   if (typeof window === 'undefined') return [];
@@ -80,17 +149,12 @@ export function saveQuotation(quotation: Quotation): void {
   const quotations = getQuotations();
   quotations.unshift(quotation);
   localStorage.setItem(QUOTATIONS_KEY, JSON.stringify(quotations));
-  const num = parseInt(localStorage.getItem(QUOT_NUM_KEY) || '0', 10);
-  localStorage.setItem(QUOT_NUM_KEY, String(num + 1));
 }
 
-export function getNextQuotationNumber(): number {
+export function getNextQuotationNumber(shopId: string): number {
   if (typeof window === 'undefined') return 1;
-  const num = parseInt(localStorage.getItem(QUOT_NUM_KEY) || '0', 10);
-  if (num === 0) {
-    const existing = getQuotations().length;
-    localStorage.setItem(QUOT_NUM_KEY, String(existing));
-    return existing + 1;
-  }
+  const key = `${QUOT_NUM_KEY}_${shopId}`;
+  const num = parseInt(localStorage.getItem(key) || '0', 10);
+  localStorage.setItem(key, String(num + 1));
   return num + 1;
 }
