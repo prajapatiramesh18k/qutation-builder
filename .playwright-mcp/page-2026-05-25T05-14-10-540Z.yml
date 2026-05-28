@@ -1,0 +1,71 @@
+- generic [active] [ref=e1]:
+    - banner [ref=e2]:
+        - heading "Ananya House of Furniture Pvt Ltd." [level=1] [ref=e3]
+        - paragraph [ref=e4]: "Proprietor: Ramesh Prajapati | Dhruvil Patel"
+    - navigation [ref=e5]:
+        - link "Quotation Builder" [ref=e6] [cursor=pointer]:
+            - /url: /
+        - link "Admin — Products" [ref=e7] [cursor=pointer]:
+            - /url: /admin
+    - main [ref=e8]:
+        - generic [ref=e9]:
+            - heading "Customer Details" [level=3] [ref=e10]
+            - generic [ref=e11]:
+                - generic [ref=e12]:
+                    - generic [ref=e13]: Customer Name *
+                    - textbox "Enter customer name" [ref=e14]
+                - generic [ref=e15]:
+                    - generic [ref=e16]: Phone Number *
+                    - textbox "Enter 10-digit mobile number" [ref=e17]
+                - generic [ref=e18]:
+                    - generic [ref=e19]: Address
+                    - textbox "Enter delivery address" [ref=e20]
+        - generic [ref=e21]:
+            - heading "Add Products" [level=3] [ref=e22]
+            - generic [ref=e23]:
+                - combobox [ref=e24]:
+                    - option "Select a product" [selected]
+                    - option "Wooden Dining Table (6-seater) — ₹45,000 (Dining)"
+                    - option "Dining Chairs Set (6) — ₹18,000 (Dining)"
+                    - option "3-Seater Sofa (Fabric) — ₹35,000 (Living)"
+                    - option "Coffee Table (Sheesham Wood) — ₹12,000 (Living)"
+                    - option "TV Unit (Wall-mounted) — ₹15,000 (Living)"
+                    - option "King Size Bed (with Storage) — ₹55,000 (Bedroom)"
+                    - option "Bedside Tables (Pair) — ₹8,000 (Bedroom)"
+                    - option "Wardrobe (3-door, Sliding) — ₹38,000 (Bedroom)"
+                    - option "Study Desk with Chair — ₹14,000 (Office)"
+                    - option "Bookshelf (5-tier) — ₹7,500 (Office)"
+                    - option "Garden Bench (Teak Wood) — ₹9,500 (Outdoor)"
+                    - option "Recliners (Single Seat) — ₹22,000 (Living)"
+                    - option "Dining Table (4-seater) — ₹28,000 (Dining)"
+                    - option "Mattress (Queen Size, Orthopedic) — ₹20,000 (Bedroom)"
+                    - option "Shoe Rack (6-layer) — ₹4,500 (Storage)"
+                    - option "Display Cabinet (Glass Door) — ₹16,000 (Living)"
+                - spinbutton [ref=e25]: "1"
+                - button "Add" [disabled] [ref=e26]
+        - generic [ref=e27]:
+            - heading "Quotation Items" [level=3] [ref=e28]
+            - paragraph [ref=e29]: No items added yet. Select products above to add them.
+        - generic [ref=e30]:
+            - heading "Notes (Optional)" [level=3] [ref=e31]
+            - textbox "Additional notes, terms, or delivery instructions..." [ref=e32]
+        - generic [ref=e33]:
+            - heading "Totals" [level=3] [ref=e34]
+            - generic [ref=e35]:
+                - generic [ref=e36]:
+                    - generic [ref=e37]: Subtotal
+                    - generic [ref=e38]: ₹0
+                - generic [ref=e39]:
+                    - generic [ref=e40]:
+                        - generic [ref=e41]: GST %
+                        - spinbutton [ref=e42]: "0"
+                    - generic [ref=e43]: ₹0
+                - generic [ref=e44]:
+                    - generic [ref=e45]:
+                        - generic [ref=e46]: Delivery
+                        - spinbutton [ref=e47]: "0"
+                    - generic [ref=e48]: ₹0
+                - generic [ref=e49]:
+                    - generic [ref=e50]: Grand Total
+                    - generic [ref=e51]: ₹0
+        - button "Download PDF Quotation" [ref=e52] [cursor=pointer]
