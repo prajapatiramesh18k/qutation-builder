@@ -74,9 +74,8 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
     doc.text(addrLines, margin, infoY);
     infoY += 3 * addrLines.length;
   }
-  if (shop.contactPerson || shop.phone) {
-    const contact = [shop.contactPerson, shop.phone].filter(Boolean).join(': ');
-    doc.text(contact, margin, infoY);
+  if (shop.contactPerson) {
+    doc.text(shop.contactPerson, margin, infoY);
   }
 
   // Logos on the right side of header
