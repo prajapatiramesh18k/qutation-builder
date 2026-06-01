@@ -16,8 +16,17 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header className="app-header">
-          <h1>Ananya House of Furniture Pvt Ltd .</h1>
-          <p>Dhurvil Patel: +91 9316992909 | Ramesh Prajapati: +91 9321812823</p>
+          <div className="header-inner">
+            <img
+              src="/brands/company-logo.png"
+              alt="Company Logo"
+              className="header-logo"
+            />
+            <div className="header-text">
+              <h1>Ananya House of Furniture Pvt Ltd.</h1>
+              <p>Dhurvil Patel: +91 9316992909 | Ramesh Prajapati: +91 9321812823</p>
+            </div>
+          </div>
         </header>
         <TabNav />
         <main className="main-content">

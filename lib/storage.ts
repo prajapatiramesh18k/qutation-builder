@@ -22,7 +22,7 @@ const SEED_SHOPS: Shop[] = [
 function seedShops(): void {
   const existing = localStorage.getItem(SHOPS_KEY);
   const cachedVersion = localStorage.getItem('ramehs_shops_v');
-  const currentVersion = '2';
+  const currentVersion = '3';
   if (!existing || JSON.parse(existing).length === 0 || cachedVersion !== currentVersion) {
     localStorage.setItem(SHOPS_KEY, JSON.stringify(SEED_SHOPS));
     localStorage.setItem('ramehs_shops_v', currentVersion);

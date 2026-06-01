@@ -46,21 +46,18 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
     : [];
 
   // ============ HEADER ============
-  // Top accent bar
   doc.setFillColor(233, 69, 96);
   doc.rect(0, 0, pageWidth, 5, 'F');
 
-  // Company name (left)
   doc.setTextColor(26, 26, 46);
-  doc.setFontSize(15);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(shop.name, margin, 18);
+  doc.text(shop.name, margin, 15);
 
-  // Email and contact info
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  let infoY = 24;
+  let infoY = 21;
   if (shop.email) {
     doc.text(shop.email, margin, infoY);
     infoY += 3;
@@ -69,16 +66,15 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
     doc.text(shop.website, margin, infoY);
     infoY += 3;
   }
+  if (shop.contactPerson) {
+    doc.text(shop.contactPerson, margin, infoY);
+    infoY += 3;
+  }
   if (shop.address) {
     const addrLines = doc.splitTextToSize(shop.address, contentWidth);
     doc.text(addrLines, margin, infoY);
-    infoY += 3 * addrLines.length;
-  }
-  if (shop.contactPerson) {
-    doc.text(shop.contactPerson, margin, infoY);
   }
 
-  // Logos on the right side of header
   if (logos.length > 0) {
     const logoW = 26;
     const logoH = 18;
@@ -95,8 +91,6 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   }
 
   doc.setTextColor(0, 0, 0);
-
-  // Divider
   doc.setDrawColor(220, 220, 220);
   doc.setLineWidth(0.3);
   doc.line(margin, 36, pageWidth - margin, 36);
@@ -114,20 +108,14 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   doc.text('Date: ' + dateStr, pageWidth - margin, quotY, { align: 'right' });
 
   doc.setTextColor(0, 0, 0);
-
-  // Divider below quotation info
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.3);
   doc.line(margin, quotY + 4, pageWidth - margin, quotY + 4);
 
   // ============ CUSTOMER DETAILS ============
   const custY = quotY + 10;
 
-  // Customer card
   doc.setFillColor(248, 248, 252);
   doc.roundedRect(margin, custY, contentWidth, 35, 2, 2, 'F');
 
-  // Label
   doc.setFillColor(26, 26, 46);
   doc.roundedRect(margin, custY, 42, 8, 2, 2, 'F');
   doc.setTextColor(255, 255, 255);
@@ -143,7 +131,7 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(80, 80, 80);
-  doc.text('Phone: ' + (data.customer.customerPhone || '-'), margin + 3, custY + 20);
+  doc.text('Phone: +91 ' + (data.customer.customerPhone || '-'), margin + 3, custY + 20);
 
   const addrText = 'Address: ' + (data.customer.customerAddress || 'N/A');
   const addrLines = doc.splitTextToSize(addrText, contentWidth - 6);
@@ -155,16 +143,14 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   const tableY = custY + 42;
 
   const tableData = data.items.map((item, index) => {
-    let sqft = 0;
-    if (item.rate && item.size) {
-      const parts = item.size.split('×');
-      sqft = parts.length === 2 ? parseFloat(parts[0]) * parseFloat(parts[1]) : parseFloat(item.size.replace(/[^\d.]/g, ''));
-    }
-    const unitPrice = sqft > 0 ? item.rate! * sqft : item.unitPrice;
+    const parts = item.size ? item.size.split('×') : [];
+    const sqft = parts.length === 2 ? parseFloat(parts[0]) * parseFloat(parts[1]) : 0;
+    const unitPrice = sqft > 0 && item.rate ? item.rate * sqft : item.unitPrice;
     return [
       index + 1,
       item.productName,
       item.size ? item.size : '-',
+      sqft > 0 ? sqft : '-',
       item.quantity,
       item.rate ? rs(item.rate) : '-',
       rs(unitPrice),
@@ -174,7 +160,7 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
 
   autoTable(doc, {
     startY: tableY,
-    head: [['#', 'Description', 'Size', 'Qty', 'Rate', 'Unit Price', 'Amount']],
+    head: [['#', 'Description', 'Size', 'Sq.Ft', 'Qty', 'Rate', 'Unit Price', 'Amount']],
     body: tableData,
     headStyles: {
       fillColor: [26, 26, 46],
@@ -192,12 +178,13 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
     },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 50, halign: 'center' },
-      2: { cellWidth: 22, halign: 'center' },
-      3: { cellWidth: 12, halign: 'center' },
-      4: { cellWidth: 22, halign: 'center' },
-      5: { cellWidth: 33, halign: 'center' },
-      6: { cellWidth: 33, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 42, halign: 'center' },
+      2: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 14, halign: 'center' },
+      4: { cellWidth: 12, halign: 'center' },
+      5: { cellWidth: 20, halign: 'center' },
+      6: { cellWidth: 30, halign: 'center' },
+      7: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
     },
     margin: { left: margin, right: margin },
     theme: 'grid',
@@ -210,16 +197,14 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tableEndY = (doc as any).lastAutoTable.finalY;
 
-  // ============ TOTALS ============
-  const totalsX = pageWidth - margin - 75;
-  const totalsWidth = 75;
+  // ============ TOTALS (RIGHT SIDE) ============
+  const totalsX = pageWidth - margin - 80;
+  const totalsWidth = 80;
   let ty = tableEndY + 10;
 
-  // Totals card background
   doc.setFillColor(248, 248, 252);
-  doc.roundedRect(totalsX - 2, ty - 2, totalsWidth + 4, 70, 2, 2, 'F');
+  doc.roundedRect(totalsX - 2, ty - 2, totalsWidth + 4, 72, 2, 2, 'F');
 
-  // Subtotal
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(80, 80, 80);
@@ -227,32 +212,28 @@ export async function generatePDF(data: PDFData, quotationNumber: string, shop: 
   doc.setTextColor(26, 26, 46);
   doc.text(rs(data.subtotal), totalsX + totalsWidth, ty, { align: 'right' });
 
-  // GST
-  ty += 8;
+  ty += 9;
   doc.setTextColor(80, 80, 80);
   doc.text('GST (' + data.gstPercent + '%)', totalsX, ty);
   doc.setTextColor(26, 26, 46);
   doc.text(rs(data.gstAmount), totalsX + totalsWidth, ty, { align: 'right' });
 
-  // Delivery
-  ty += 8;
+  ty += 9;
   doc.setTextColor(80, 80, 80);
   doc.text('Delivery', totalsX, ty);
   doc.setTextColor(26, 26, 46);
   doc.text(rs(data.deliveryCharges), totalsX + totalsWidth, ty, { align: 'right' });
 
-  // Divider
-  ty += 6;
+  ty += 8;
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.3);
   doc.line(totalsX, ty, totalsX + totalsWidth, ty);
 
-  // Grand Total
-  ty += 9;
+  ty += 10;
   doc.setFillColor(233, 69, 96);
-  doc.roundedRect(totalsX - 2, ty - 5, totalsWidth + 4, 14, 2, 2, 'F');
+  doc.roundedRect(totalsX - 2, ty - 6, totalsWidth + 4, 16, 2, 2, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('GRAND TOTAL', totalsX + 2, ty + 1);
   doc.text(rs(data.total), totalsX + totalsWidth, ty + 1, { align: 'right' });

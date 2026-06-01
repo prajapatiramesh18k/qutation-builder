@@ -14,13 +14,15 @@ export default function QuotationPage() {
     customerPhone: '',
     customerAddress: '',
   })
+  const [countryCode, setCountryCode] = useState('+91')
 
   const [items, setItems] = useState<QuotationItem[]>([])
   const [selectedProductId, setSelectedProductId] = useState('')
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState<string>('1')
   const [itemHeight, setItemHeight] = useState<number>(0)
   const [itemWidth, setItemWidth] = useState<number>(0)
   const [itemRate, setItemRate] = useState(0)
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null)
   const [gstPercent, setGstPercent] = useState(0)
   const [deliveryCharges, setDeliveryCharges] = useState(0)
   const [notes, setNotes] = useState('')
@@ -54,38 +56,61 @@ export default function QuotationPage() {
   const total = useMemo(() => subtotal + gstAmount + deliveryCharges, [subtotal, gstAmount, deliveryCharges])
 
   const handleAddItem = useCallback(() => {
-    if (!selectedProductId || quantity < 1) return
+    const qty = parseInt(quantity) || 1
+    if (!selectedProductId || qty < 1) return
     const product = getProducts().find(p => p.id === selectedProductId)
     if (!product) return
 
-    const existing = items.find(i => i.productId === product.id)
-    if (existing) {
-      setItems(items.map(i =>
-        i.productId === product.id
-          ? { ...i, quantity: i.quantity + quantity }
-          : i
-      ))
+    const size = itemHeight && itemWidth ? `${itemHeight}×${itemWidth}` : ''
+    const newItem: QuotationItem = {
+      productId: product.id,
+      productName: product.name,
+      unitPrice: product.price,
+      quantity: qty,
+      brand: product.brand,
+      size,
+      rate: itemRate,
+    }
+
+    if (editingItemIndex !== null) {
+      setItems(items.map((item, i) => i === editingItemIndex ? newItem : item))
+      setEditingItemIndex(null)
     } else {
-      setItems([...items, {
-        productId: product.id,
-        productName: product.name,
-        unitPrice: product.price,
-        quantity,
-        brand: product.brand,
-        size: itemHeight && itemWidth ? `${itemHeight}×${itemWidth}` : '',
-        rate: itemRate,
-      }])
+      setItems([...items, newItem])
     }
     setSelectedProductId('')
-    setQuantity(1)
+    setQuantity('1')
     setItemHeight(0)
     setItemWidth(0)
     setItemRate(0)
-  }, [selectedProductId, quantity, items, itemHeight, itemWidth, itemRate])
+  }, [selectedProductId, quantity, items, itemHeight, itemWidth, itemRate, editingItemIndex])
+
+  const handleEditItem = useCallback((index: number) => {
+    const item = items[index]
+    setSelectedProductId(item.productId)
+    setQuantity(String(item.quantity))
+    const parts = item.size ? item.size.split('×') : []
+    setItemHeight(parts[0] ? parseFloat(parts[0]) : 0)
+    setItemWidth(parts[1] ? parseFloat(parts[1]) : 0)
+    setItemRate(item.rate || 0)
+    setEditingItemIndex(index)
+  }, [items])
+
+  const handleCancelEdit = useCallback(() => {
+    setSelectedProductId('')
+    setQuantity('1')
+    setItemHeight(0)
+    setItemWidth(0)
+    setItemRate(0)
+    setEditingItemIndex(null)
+  }, [])
 
   const handleRemoveItem = useCallback((index: number) => {
     setItems(items.filter((_, i) => i !== index))
-  }, [items])
+    if (editingItemIndex === index) {
+      handleCancelEdit()
+    }
+  }, [items, editingItemIndex, handleCancelEdit])
 
   const handleGeneratePDF = useCallback(async () => {
     if (!selectedShop) {
@@ -213,14 +238,35 @@ export default function QuotationPage() {
           </div>
           <div className="form-group">
             <label>Phone Number *</label>
-            <input
-              type="tel"
-              className="form-input"
-              placeholder="Enter 10-digit mobile number"
-              value={customer.customerPhone}
-              maxLength={10}
-              onChange={e => setCustomer({ ...customer, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                className="form-input"
+                style={{ width: '90px', flexShrink: 0 }}
+                value={countryCode}
+                onChange={e => setCountryCode(e.target.value)}
+              >
+                <option value="+91">+91</option>
+                <option value="+1">+1 (US)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+61">+61 (AU)</option>
+                <option value="+971">+971 (UAE)</option>
+                <option value="+1-246">+1-246 (Barbados)</option>
+                <option value="+880">+880 (BD)</option>
+                <option value="+92">+92 (PK)</option>
+                <option value="+94">+94 (LKA)</option>
+                <option value="+975">+975 (BT)</option>
+                <option value="+977">+977 (NP)</option>
+                <option value="+960">+960 (MV)</option>
+              </select>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Enter mobile number"
+                value={customer.customerPhone}
+                maxLength={15}
+                onChange={e => setCustomer({ ...customer, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 15) })}
+              />
+            </div>
           </div>
           <div className="form-group full-width">
             <label>Address</label>
@@ -270,6 +316,11 @@ export default function QuotationPage() {
             onChange={e => setItemWidth(parseFloat(e.target.value) || 0)}
             style={{ width: '70px' }}
           />
+          {itemHeight > 0 && itemWidth > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', fontWeight: 600, color: 'var(--accent)', minWidth: '80px', fontSize: '13px' }}>
+              = {itemHeight * itemWidth} Sq.Ft
+            </span>
+          )}
           <input
             type="number"
             className="form-input"
@@ -279,15 +330,20 @@ export default function QuotationPage() {
             style={{ width: '80px' }}
           />
           <input
-            type="number"
+            type="text"
             className="form-input qty-input"
-            min="1"
+            placeholder="Qty"
             value={quantity}
-            onChange={e => setQuantity(parseInt(e.target.value) || 1)}
+            onChange={e => setQuantity(e.target.value)}
           />
           <button onClick={handleAddItem} disabled={!selectedProductId}>
-            Add
+            {editingItemIndex !== null ? 'Update' : 'Add'}
           </button>
+          {editingItemIndex !== null && (
+            <button className="btn-cancel" onClick={handleCancelEdit}>
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
@@ -303,9 +359,9 @@ export default function QuotationPage() {
                 <th>#</th>
                 <th>Product</th>
                 <th>Size</th>
+                <th>Sq.Ft</th>
                 <th>Qty</th>
                 <th>Rate</th>
-                <th>Unit Price</th>
                 <th>Total</th>
                 <th></th>
               </tr>
@@ -320,14 +376,13 @@ export default function QuotationPage() {
                     <td>{index + 1}</td>
                     <td>{item.productName}</td>
                     <td>{item.size || '-'}</td>
+                    <td>{sqft > 0 ? sqft : '-'}</td>
                     <td>{item.quantity}</td>
                     <td>{item.rate ? '₹' + item.rate.toLocaleString('en-IN') : '-'}</td>
-                    <td>&#8377;{calcUnitPrice.toLocaleString('en-IN')}</td>
                     <td>&#8377;{(item.quantity * calcUnitPrice).toLocaleString('en-IN')}</td>
                     <td>
-                      <button className="btn-delete" onClick={() => handleRemoveItem(index)}>
-                        Remove
-                      </button>
+                      <button className="btn-edit" onClick={() => handleEditItem(index)}>Edit</button>
+                      <button className="btn-delete" onClick={() => handleRemoveItem(index)}>Remove</button>
                     </td>
                   </tr>
                 );
@@ -390,7 +445,7 @@ export default function QuotationPage() {
 
       {/* Generate PDF */}
       <button className="btn-generate-pdf" onClick={handleGeneratePDF} disabled={!selectedShop}>
-        Download PDF Quotation
+        Generate Quotation PDF
       </button>
     </>
   )

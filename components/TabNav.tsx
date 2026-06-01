@@ -12,7 +12,7 @@ export default function TabNav() {
         Quotation Builder
       </Link>
       <Link href="/admin" className={`tab-link ${pathname === '/admin' ? 'active' : ''}`}>
-        Admin — Products
+        Admin
       </Link>
     </nav>
   )
