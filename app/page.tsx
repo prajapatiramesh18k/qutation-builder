@@ -26,6 +26,12 @@ export default function QuotationPage() {
   const [gstPercent, setGstPercent] = useState(0)
   const [deliveryCharges, setDeliveryCharges] = useState(0)
   const [notes, setNotes] = useState('')
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message })
+    setTimeout(() => setToast(null), 2000)
+  }, [])
 
   useEffect(() => {
     const availableShops = getShops()
@@ -114,15 +120,19 @@ export default function QuotationPage() {
 
   const handleGeneratePDF = useCallback(async () => {
     if (!selectedShop) {
-      alert('Please select a shop first.')
+      showToast('error', 'Please select a shop first.')
       return
     }
-    if (!customer.customerName || !customer.customerPhone || items.length === 0) {
-      alert('Please fill customer details and add at least one product.')
+    if (!customer.customerName) {
+      showToast('error', 'Please enter customer name.')
       return
     }
-    if (!/^\d{10}$/.test(customer.customerPhone)) {
-      alert('Please enter a valid 10-digit mobile number.')
+    if (!customer.customerPhone || customer.customerPhone.length < 10) {
+      showToast('error', 'Please enter a valid 10-digit mobile number.')
+      return
+    }
+    if (items.length === 0) {
+      showToast('error', 'Please add at least one product.')
       return
     }
     const quotationNumber = `Q${Date.now()}`
@@ -160,8 +170,9 @@ export default function QuotationPage() {
     setNotes('')
     setDeliveryCharges(0)
     setGstPercent(0)
-    alert('Quotation saved and PDF downloaded!')
-  }, [customer, items, subtotal, gstPercent, gstAmount, deliveryCharges, total, notes, selectedShop])
+    setCountryCode('+91')
+    showToast('success', 'Quotation saved and PDF downloaded successfully!')
+  }, [customer, items, subtotal, gstPercent, gstAmount, deliveryCharges, total, notes, selectedShop, showToast])
 
   if (!mounted) {
     return (
@@ -198,6 +209,13 @@ export default function QuotationPage() {
 
   return (
     <>
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Shop Selector */}
       <div className="card">
         <h3>Select Shop</h3>
@@ -261,10 +279,10 @@ export default function QuotationPage() {
               <input
                 type="text"
                 className="form-input"
-                placeholder="Enter mobile number"
+                placeholder="Enter 10-digit mobile number"
                 value={customer.customerPhone}
-                maxLength={15}
-                onChange={e => setCustomer({ ...customer, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 15) })}
+                maxLength={10}
+                onChange={e => setCustomer({ ...customer, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
               />
             </div>
           </div>
