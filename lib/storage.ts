@@ -9,8 +9,8 @@ const SEED_SHOPS: Shop[] = [
   {
     id: 'shop-1',
     name: 'Ananya House of Furniture Pvt Ltd.',
-    contactPerson: ' Dhurvil: +91 9316992909 | Bharat: +91 9099917211 | | Ramesh: +91 9321812823',
-    phone: '+91 9099917211',
+    contactPerson: 'Dhurvil Patel: +91 9316992909 | Ramesh Prajapati: +91 9321812823',
+    phone: '',
     email: 'ananyahouseoffurniture@gmail.com',
     website: 'www.ananyahouseoffurniture.in',
     showLogos: true,
@@ -21,10 +21,11 @@ const SEED_SHOPS: Shop[] = [
 
 function seedShops(): void {
   const existing = localStorage.getItem(SHOPS_KEY);
-  const alreadySeeded = localStorage.getItem('ramehs_shops_seeded');
-  if (!existing || JSON.parse(existing).length === 0 || !alreadySeeded) {
+  const cachedVersion = localStorage.getItem('ramehs_shops_v');
+  const currentVersion = '2';
+  if (!existing || JSON.parse(existing).length === 0 || cachedVersion !== currentVersion) {
     localStorage.setItem(SHOPS_KEY, JSON.stringify(SEED_SHOPS));
-    localStorage.setItem('ramehs_shops_seeded', 'true');
+    localStorage.setItem('ramehs_shops_v', currentVersion);
   }
 }
 
