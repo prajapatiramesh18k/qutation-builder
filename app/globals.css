@@ -224,13 +224,18 @@ input[type='number'] {
 /* Selector row */
 .selector-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.selector-row > * {
+  flex: 0 0 auto;
 }
 
 .selector-row select {
-  flex: 1;
-  min-width: 250px;
+  flex: 1 1 180px;
+  min-width: 160px;
 }
 
 .qty-input {

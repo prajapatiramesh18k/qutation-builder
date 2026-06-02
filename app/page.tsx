@@ -18,6 +18,7 @@ export default function QuotationPage() {
 
   const [items, setItems] = useState<QuotationItem[]>([])
   const [selectedProductId, setSelectedProductId] = useState('')
+  const [customProductName, setCustomProductName] = useState('')
   const [quantity, setQuantity] = useState<string>('1')
   const [itemHeight, setItemHeight] = useState<number>(0)
   const [itemWidth, setItemWidth] = useState<number>(0)
@@ -63,17 +64,20 @@ export default function QuotationPage() {
 
   const handleAddItem = useCallback(() => {
     const qty = parseInt(quantity) || 1
-    if (!selectedProductId || qty < 1) return
-    const product = getProducts().find(p => p.id === selectedProductId)
-    if (!product) return
+    if (qty < 1) return
+    if (!selectedProductId && !customProductName.trim()) {
+      showToast('error', 'Please select a product or enter a custom name.')
+      return
+    }
 
+    const product = selectedProductId ? getProducts().find(p => p.id === selectedProductId) : null
     const size = itemHeight && itemWidth ? `${itemHeight}×${itemWidth}` : ''
     const newItem: QuotationItem = {
-      productId: product.id,
-      productName: product.name,
-      unitPrice: product.price,
+      productId: product?.id || 'custom-' + Date.now(),
+      productName: customProductName.trim() || product?.name || 'Custom Item',
+      unitPrice: product?.price || 0,
       quantity: qty,
-      brand: product.brand,
+      brand: product?.brand,
       size,
       rate: itemRate,
     }
@@ -85,15 +89,18 @@ export default function QuotationPage() {
       setItems([...items, newItem])
     }
     setSelectedProductId('')
+    setCustomProductName('')
     setQuantity('1')
     setItemHeight(0)
     setItemWidth(0)
     setItemRate(0)
-  }, [selectedProductId, quantity, items, itemHeight, itemWidth, itemRate, editingItemIndex])
+  }, [selectedProductId, customProductName, quantity, items, itemHeight, itemWidth, itemRate, editingItemIndex, showToast])
 
   const handleEditItem = useCallback((index: number) => {
     const item = items[index]
-    setSelectedProductId(item.productId)
+    const isCustom = item.productId.startsWith('custom-')
+    setSelectedProductId(isCustom ? '' : item.productId)
+    setCustomProductName(isCustom ? item.productName : '')
     setQuantity(String(item.quantity))
     const parts = item.size ? item.size.split('×') : []
     setItemHeight(parts[0] ? parseFloat(parts[0]) : 0)
@@ -104,6 +111,7 @@ export default function QuotationPage() {
 
   const handleCancelEdit = useCallback(() => {
     setSelectedProductId('')
+    setCustomProductName('')
     setQuantity('1')
     setItemHeight(0)
     setItemWidth(0)
@@ -303,39 +311,99 @@ export default function QuotationPage() {
       <div className="card">
         <h3>Add Products</h3>
         <div className="selector-row">
-          <select
-            className="form-input"
-            value={selectedProductId}
-            onChange={e => setSelectedProductId(e.target.value)}
-          >
-            <option value="">Select a product</option>
-            {getProducts().map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} — &#8377;{p.price.toLocaleString('en-IN')} ({p.category})
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '160px' }}>
+            <select
+              className="form-input"
+              value={selectedProductId}
+              onChange={e => setSelectedProductId(e.target.value)}
+              style={{ paddingRight: selectedProductId ? '30px' : '14px' }}
+            >
+              <option value="">Select a product</option>
+              {getProducts().map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — &#8377;{p.price.toLocaleString('en-IN')} ({p.category})
+                </option>
+              ))}
+            </select>
+            {selectedProductId && (
+              <button
+                type="button"
+                onClick={() => setSelectedProductId('')}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: 'var(--text-light)',
+                  cursor: 'pointer',
+                  padding: '0 6px',
+                  lineHeight: 1,
+                }}
+                title="Clear selection"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <span style={{ fontSize: '14px', color: 'var(--text-light)' }}>or</span>
+          <div style={{ position: 'relative', flex: '1 1 160px', minWidth: '140px' }}>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Type custom product name"
+              value={customProductName}
+              onChange={e => setCustomProductName(e.target.value)}
+              style={{ paddingRight: customProductName ? '30px' : '14px' }}
+            />
+            {customProductName && (
+              <button
+                type="button"
+                onClick={() => setCustomProductName('')}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: 'var(--text-light)',
+                  cursor: 'pointer',
+                  padding: '0 6px',
+                  lineHeight: 1,
+                }}
+                title="Clear"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <input
             type="number"
             className="form-input"
-            placeholder="Height"
+            placeholder="H"
             min="0"
             value={itemHeight || ''}
             onChange={e => setItemHeight(parseFloat(e.target.value) || 0)}
-            style={{ width: '70px' }}
+            style={{ width: '60px', flexShrink: 0 }}
           />
           <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a1a2e' }}>×</span>
           <input
             type="number"
             className="form-input"
-            placeholder="Width"
+            placeholder="W"
             min="0"
             value={itemWidth || ''}
             onChange={e => setItemWidth(parseFloat(e.target.value) || 0)}
-            style={{ width: '70px' }}
+            style={{ width: '60px', flexShrink: 0 }}
           />
           {itemHeight > 0 && itemWidth > 0 && (
-            <span style={{ display: 'flex', alignItems: 'center', fontWeight: 600, color: 'var(--accent)', minWidth: '80px', fontSize: '13px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--accent)', fontSize: '13px', whiteSpace: 'nowrap' }}>
               = {itemHeight * itemWidth} Sq.Ft
             </span>
           )}
@@ -345,7 +413,7 @@ export default function QuotationPage() {
             placeholder="Rate"
             value={itemRate || ''}
             onChange={e => setItemRate(parseFloat(e.target.value) || 0)}
-            style={{ width: '80px' }}
+            style={{ width: '70px', flexShrink: 0 }}
           />
           <input
             type="text"
@@ -353,12 +421,13 @@ export default function QuotationPage() {
             placeholder="Qty"
             value={quantity}
             onChange={e => setQuantity(e.target.value)}
+            style={{ width: '60px', flexShrink: 0 }}
           />
-          <button onClick={handleAddItem} disabled={!selectedProductId}>
+          <button onClick={handleAddItem} disabled={!selectedProductId && !customProductName.trim()} style={{ flexShrink: 0 }}>
             {editingItemIndex !== null ? 'Update' : 'Add'}
           </button>
           {editingItemIndex !== null && (
-            <button className="btn-cancel" onClick={handleCancelEdit}>
+            <button className="btn-cancel" onClick={handleCancelEdit} style={{ flexShrink: 0 }}>
               Cancel
             </button>
           )}
